@@ -23,6 +23,8 @@ qta_week_12/                          # Week 12: Transformers
 ├── 2024_qta_lab_week_12.qmd          # Quarto markdown source
 └── qta_2024_week_12.pdf              # Lecture slides
 
+```
+
 
 
 ### **Week 11 Word Embeddings**
