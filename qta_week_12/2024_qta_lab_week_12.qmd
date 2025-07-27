@@ -1,0 +1,132 @@
+---
+title: "Quantitative Text Analysis"
+subtitle: "Lab Session: Week 12"
+author: "Instructor: Yen-Chieh Liao and Stefan Müller "
+date: "22 April 2024"
+format: 
+    html:
+        self-contained: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#### Load Pacakge and flaiR Module 
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+library(flaiR)
+Sentence <- flair_data()$Sentence
+Corpus <- flair_data()$Corpus
+TransformerDocumentEmbeddings <- flair_embeddings()$TransformerDocumentEmbeddings
+TextClassifier <- flair_models()$TextClassifier
+ModelTrainer <- flair_trainers()$ModelTrainer
+```
+
+
+```{r}
+dataset <- read_csv("irish_environmental_policies.csv", show_col_types = FALSE)
+dataset <- sample_n(dataset, 200)
+```
+
+
+#### Create the Corpus 
+
+```{r}
+# The `Sentence` object tokenizes text 
+text <- lapply(dataset$text, Sentence)
+
+# `$add_label` method assigns the corresponding coded type to each Sentence corpus.
+labels <- as.character(dataset$label)
+# labels <- iconv(labels, to = "UTF-8")
+for (i in 1:length(text)) {
+  # Assuming 'labels' is a character vector with correct encoding
+  text[[i]]$add_label("classification", as.character(labels[[i]]))
+}
+
+# split dataset into train and test
+set.seed(2046)
+sample <- sample(c(TRUE, FALSE), length(text), replace = TRUE, prob = c(0.8, 0.2))
+train  <- text[sample]
+test   <- text[!sample]
+corpus <- Corpus(train = train, 
+                 test = test)
+
+sprintf("Corpus object sizes - Train: %d | Test: %d | Dev: %d", 
+        length(corpus$train), 
+        length(corpus$test), 
+        length(corpus$dev))
+```
+
+#### Create Document-levle Embeddings Using Transformer
+
+```{r}
+document_embeddings <- TransformerDocumentEmbeddings('distilbert-base-uncased', 
+                                                     fine_tune=TRUE)
+```
+
+
+
+#### Create a Text Classifier
+
+```{r}
+label_dict <- corpus$make_label_dictionary(label_type="classification")
+
+```
+```{r}
+sprintf("Check idx to item: label_dict$idx2item[[1]] → %s | label_dict$idx2item[[2]] → %s", 
+        label_dict$idx2item[[1]], label_dict$idx2item[[2]])
+
+sprintf("Check item to idx: label_dict$item2idx[[1]] → %s | label_dict$item2idx[[2]] → %s", 
+        label_dict$item2idx[[1]], label_dict$item2idx[[2]])
+```
+
+
+
+#### Train the Classifier 
+
+```{r}
+classifier <- TextClassifier(document_embeddings,
+                             label_dictionary = label_dict, 
+                             label_type = 'classification')
+
+# classifier <- classifier$to(flair_device("mps"))
+trainer <- ModelTrainer(classifier, corpus)
+
+```
+
+```{r}
+flair <- import_flair()
+flair$set_seed(42L)
+
+trainer$train('qta_hf_r_model',         
+              learning_rate = 0.02,             
+              mini_batch_size = 8L,             
+              anneal_with_restarts = TRUE,
+              save_final_model = TRUE,
+              max_epochs = 3L)      
+```
+
+
+#### Annotate Unseen Text
+
+```{r}
+tokened_text <- Sentence("I love Dublin.")
+classifier$predict(tokened_text)
+```
+
+
+```{r}
+print(tokened_text)
+```
+
+#### Tasks
+
+- Train your own model with a small sample. It's okay if the prediction rate is not high.
+
+- Try to review the official documentation.
+
