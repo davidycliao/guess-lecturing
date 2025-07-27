@@ -1,9 +1,7 @@
-# -guess-lecturing
 
 
 # Guest Lecturer in Weeks on Word Embeddings and Transformers at UCD Quantitative Text Analysis
 
-## Course Overview
 
 This repositories contain materials for a two-day course on **Quantitative Text Analysis** on **Word Embeddings** and **Transformers**, led by Prof Stefan Müller at University College Dublin.
 
